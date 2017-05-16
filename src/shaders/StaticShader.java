@@ -17,6 +17,7 @@ public class StaticShader extends ShaderProgram {
     private int location_brightness;
     private int location_lightColor;
     private int location_lightLocation;
+    private int location_renderdistance;
 
     public StaticShader() {
         super(VERTEX_FILE, FRAG_FILE);
@@ -34,8 +35,13 @@ public class StaticShader extends ShaderProgram {
         location_projection = super.getUniformLocation("projectionMatrix");
         location_view = super.getUniformLocation("viewMatrix");
         location_brightness = super.getUniformLocation("brightness");
+        location_renderdistance = super.getUniformLocation("renderDistance");
 //        location_lightLocation = super.getUniformLocation("lightPosition");
 //        location_lightColor = super.getUniformLocation("lightColor");
+    }
+
+    public void loadRenderDistance(float distance) {
+        super.loadFloat(location_renderdistance, distance);
     }
 
     public void loadTransformationMatrix(Matrix4f matrix) {

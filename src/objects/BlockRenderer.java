@@ -12,10 +12,12 @@ import render.Loader;
 import shaders.StaticShader;
 import textures.ModelTexture;
 import toolbox.Maths;
+import toolbox.Settings;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class BlockTexture {
+public class BlockRenderer {
 
     static private RawModel rawModel;
     static private RawModel rawModelSingle;
@@ -23,6 +25,20 @@ public class BlockTexture {
     static private Map<Integer, Integer> types = new HashMap<>();
     static public final int FOUR_SQUARE = 2;
     static public final int ONE_SQUARE = 1;
+
+    static private float px, py, pz;
+
+    public static void setX(float x) {
+        BlockRenderer.px = x;
+    }
+
+    public static void setY(float y) {
+        BlockRenderer.py = y;
+    }
+
+    public static void setZ(float z) {
+        BlockRenderer.pz = z;
+    }
 
     public static void addTexture(String filename, Loader loader, int ID, int type) {
         if (rawModel == null) {
@@ -40,9 +56,10 @@ public class BlockTexture {
         types.put(ID, type);
     }
 
-    public static void render(Block[][][] block, StaticShader shader) {
+    public static void render(Block[][][] block, StaticShader shader, int[] offset) {
         int chunkSize = block.length;
         int limit = chunkSize - 1;
+        int render = Settings.RENDER_DISTANCE;
         GL30.glBindVertexArray(rawModelSingle.getVaoID());
         GL20.glEnableVertexAttribArray(0);
         GL20.glEnableVertexAttribArray(1);
@@ -55,23 +72,27 @@ public class BlockTexture {
                     int ID = block[x][y][z].getID(); // Get texture ID
                     if (ID == 0) continue; // Break if air
                     // Change texture if needed
-                    if (types.get(ID) != perviousTextureType) {
-                        perviousTextureType = types.get(ID);
-                        GL20.glDisableVertexAttribArray(0);
-                        GL20.glDisableVertexAttribArray(1);
-                        if (types.get(ID) == ONE_SQUARE) {
-                            GL30.glBindVertexArray(rawModelSingle.getVaoID());
-                        } else {
-                            GL30.glBindVertexArray(rawModel.getVaoID());
-                        }
-                        GL20.glEnableVertexAttribArray(0);
-                        GL20.glEnableVertexAttribArray(1);
-                    }
                     if (previousID != ID) {
+                        // Change model type if needed
+                        if (types.get(ID) != perviousTextureType) {
+                            perviousTextureType = types.get(ID);
+                            GL20.glDisableVertexAttribArray(0);
+                            GL20.glDisableVertexAttribArray(1);
+                            if (types.get(ID) == ONE_SQUARE) {
+                                GL30.glBindVertexArray(rawModelSingle.getVaoID());
+                            } else {
+                                GL30.glBindVertexArray(rawModel.getVaoID());
+                            }
+                            GL20.glEnableVertexAttribArray(0);
+                            GL20.glEnableVertexAttribArray(1);
+                        }
                         GL13.glActiveTexture(GL13.GL_TEXTURE0);
                         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textures.get(ID).getTexture().getTextureID());
                         previousID = ID;
                     }
+
+                    float distance = (float)Math.sqrt(Math.pow(px - (x + offset[0]), 2) + Math.pow(py - (y + offset[1]), 2) + Math.pow(pz - (z + offset[2]), 2));
+                    if (distance > render) continue;
 
                     if (x != 0 && x != limit && y != 0 && y != limit && z != 0 && z != limit) {
                         if (block[x - 1][y][z].getID() != 0 && block[x + 1][y][z].getID() != 0 &&
@@ -81,8 +102,8 @@ public class BlockTexture {
                         }
                     }
 
-                    Matrix4f transformationMatrix = Maths.createTransformationMatrix(new Vector3f(x * 2, y * 2, z * 2),
-                                                                                     0, 0, 0, 1);
+                    Matrix4f transformationMatrix = Maths.createTransformationMatrix(new Vector3f(x + offset[0], y + offset[1], z + offset[2]),
+                                                                                     0, 0, 0, 0.5f);
                     shader.loadTransformationMatrix(transformationMatrix);
                     shader.loadBrightness(block[x][y][z].getLight());
                     GL11.glDrawElements(GL11.GL_TRIANGLES, 36, GL11.GL_UNSIGNED_INT, 0);

@@ -2,10 +2,7 @@ package render;
 
 import models.RawModel;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL15;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.*;
 import org.newdawn.slick.opengl.Texture;
 import org.newdawn.slick.opengl.TextureLoader;
 import toolbox.GameIO;
@@ -23,21 +20,31 @@ public class Loader {
     private List<Integer> vbos = new ArrayList<>();
     private List<Integer> textures = new ArrayList<>();
 
-    public RawModel load(float[] positions, float[] textureCoords, int[] indices, float[] normals) {
+    public RawModel load2(float[] positions, float[] textureCoords, int[] indices, float[] offset) {
         int vaoID = create();
         bindIndices(indices);
-        storeData(0, 3, positions);
-        storeData(1, 2, textureCoords);
-        storeData(2, 3, normals);
+        storeData(0, 3, positions, false);
+        storeData(1, 2, textureCoords, false);
+        storeData(2, 3, offset, true);
         unbind();
         return new RawModel(vaoID, indices.length);
     }
 
+//    public RawModel load(float[] positions, float[] textureCoords, int[] indices, float[] normals) {
+//        int vaoID = create();
+//        bindIndices(indices);
+//        storeData(0, 3, positions);
+//        storeData(1, 2, textureCoords);
+//        storeData(2, 3, normals);
+//        unbind();
+//        return new RawModel(vaoID, indices.length);
+//    }
+
     public RawModel load(float[] positions, float[] textureCoords, int[] indices) {
         int vaoID = create();
         bindIndices(indices);
-        storeData(0, 3, positions);
-        storeData(1, 2, textureCoords);
+        storeData(0, 3, positions, false);
+        storeData(1, 2, textureCoords, false);
         unbind();
         return new RawModel(vaoID, indices.length);
     }
@@ -45,7 +52,7 @@ public class Loader {
     public RawModel load(float[] positions, int[] indices) {
         int vaoID = create();
         bindIndices(indices);
-        storeData(0, 3, positions);
+        storeData(0, 3, positions, false);
         unbind();
         return new RawModel(vaoID, indices.length);
     }
@@ -55,6 +62,10 @@ public class Loader {
         Texture texture;
         try {
             texture = TextureLoader.getTexture("PNG", new FileInputStream(GameIO.getCWD() + "/res/" + filename + ".png"), GL11.GL_NEAREST);
+//            GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
+//            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_NEAREST);
+//            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR_MIPMAP_LINEAR);
+//            GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL14.GL_TEXTURE_LOD_BIAS, -1f);
         } catch (IOException e) {
             e.printStackTrace();
             return 0;
@@ -83,7 +94,7 @@ public class Loader {
         return vaoID;
     }
 
-    private void storeData(int attributeNumber, int coordinateSize, float[] data) {
+    private void storeData(int attributeNumber, int coordinateSize, float[] data, boolean instance) {
         int vboID = GL15.glGenBuffers();
         vbos.add(vboID);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vboID);
@@ -91,6 +102,7 @@ public class Loader {
             GL15.glBufferData(GL15.GL_ARRAY_BUFFER, buffer, GL15.GL_STATIC_DRAW);
             GL20.glVertexAttribPointer(attributeNumber, coordinateSize, GL11.GL_FLOAT, false, 0, 0);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER,0);
+        if (instance) GL33.glVertexAttribDivisor(2, 1);
     }
 
     private void unbind() {

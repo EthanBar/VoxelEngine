@@ -1,19 +1,18 @@
 import audio.AudioMaster;
 import audio.Source;
 import entity.Camera;
-import objects.Block;
-import objects.BlockTexture;
+import objects.BlockRenderer;
 import objects.Block_Side;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.util.vector.Vector3f;
 import render.Loader;
 import org.lwjgl.opengl.Display;
 import render.DisplayMain;
 import render.Renderer;
 import shaders.StaticShader;
+import toolbox.Settings;
 import worldgen.World;
-
-import java.util.ArrayList;
 
 public class VoxelEngine {
 
@@ -28,22 +27,22 @@ public class VoxelEngine {
         StaticShader shader = new StaticShader();
         Renderer renderer = new Renderer(shader);
 
-        BlockTexture.addTexture("blocks/dirt/map", loader, 1, BlockTexture.FOUR_SQUARE);
-        BlockTexture.addTexture("blocks/planks_oak/single", loader, 2, BlockTexture.ONE_SQUARE);
-//        BlockTexture.addTexture("natev2", loader, 2, BlockTexture.ONE_SQUARE);
-//        BlockTexture.addTexture("natev3", loader, 3, BlockTexture.ONE_SQUARE);
-//        BlockTexture.addTexture("natev3", loader, 3, BlockTexture.ONE_SQUARE);
+        BlockRenderer.addTexture("blocks/dirt/map", loader, 1, BlockRenderer.FOUR_SQUARE);
+        BlockRenderer.addTexture("blocks/planks_oak/single", loader, 2, BlockRenderer.ONE_SQUARE);
+//        BlockRenderer.addTexture("natev2", loader, 2, BlockRenderer.ONE_SQUARE);
+//        BlockRenderer.addTexture("natev3", loader, 3, BlockRenderer.ONE_SQUARE);
+//        BlockRenderer.addTexture("natev3", loader, 3, BlockRenderer.ONE_SQUARE);
 
-        int chunkSize = 32;
-        Block[][][] blocks = new Block[chunkSize][chunkSize][chunkSize];
-        for (int x = 0; x < chunkSize; x++) {
-            for (int y = 0; y < chunkSize; y++) {
-                for (int z = 0; z < chunkSize; z++) {
-                    blocks[x][y][z] = new Block(x * 2, y * 2, z * 2, y);
-                }
-            }
-        }
-        blocks[10][7][8].setID(0);
+//        int chunkSize = 64;
+//        Block[][][] blocks = new Block[chunkSize][chunkSize][chunkSize];
+//        for (int x = 0; x < chunkSize; x++) {
+//            for (int y = 0; y < chunkSize; y++) {
+//                for (int z = 0; z < chunkSize; z++) {
+//                    blocks[x][y][z] = new Block(x * 2, y * 2, z * 2, y);
+//                }
+//            }
+//        }
+//        blocks[10][7][8].setID(0);
 //        Light light = new Light(new Vector3f(8, 8, 8), new Vector3f(1, 1, 1));
         Camera camera = new Camera();
 
@@ -58,21 +57,38 @@ public class VoxelEngine {
         World world = new World();
         // Enable wireframe
 //        GL11.glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        int frameNumber = 0;
+        int renderChunks = (int)Math.ceil(Settings.RENDER_DISTANCE / 16) * 2;
         GL11.glEnable(GL11.GL_CULL_FACE);
         while(!Display.isCloseRequested()) {
+            // Set up
             if(Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) break;
+            Vector3f pos = camera.getPosition();
+            BlockRenderer.setX(pos.x);
+            BlockRenderer.setY(pos.y);
+            BlockRenderer.setZ(pos.z);
+            frameNumber++;
+            double time = System.currentTimeMillis();
 
             // Tick math
             camera.move();
+            int cx = Math.round(pos.x / 16);
+            int cy = Math.round(pos.z / 16);
+
 
             // Render
             renderer.prepare();
             shader.start();
-//            shader.loadLight(light);
+            shader.loadRenderDistance(Settings.RENDER_DISTANCE);
             shader.loadViewMatrix(camera);
-            BlockTexture.render(blocks, shader);
+            for (int x = cx - renderChunks / 2; x < cx + renderChunks / 2; x++) {
+                for (int y = cy - renderChunks / 2; y < cy + renderChunks / 2; y++) {
+                    BlockRenderer.render(world.getBlocks(x, y), shader, new int[]{x * 16, 0, y * 16});
+                }
+            }
             shader.stop();
             DisplayMain.update();
+            if (frameNumber % 60 == 0) System.out.println("Milliseconds per frame: " + Double.toString((double)System.currentTimeMillis() - time));
         }
 
         shader.clean();
@@ -89,115 +105,5 @@ public class VoxelEngine {
         ModelTexture dirtBottom = new ModelTexture(loader.loadTexture("blocks/dirt/bottom"));
         renderer.render(entity2, shader);
         renderer.render(block.entity, shader);
-
-            static private float normals[] = {   // x     y     z
-            -1, -1,  1,
-            -1,  1,  1,
-            -1, -1, -1,
-            -1,  1, -1,
-
-             1, -1, -1,
-             1,  1, -1,
-             1, -1,  1,
-             1,  1,  1,
-
-             1,  1, -1,
-            -1,  1, -1,
-             1,  1,  1,
-            -1,  1,  1,
-
-             1, -1,  1,
-            -1, -1,  1,
-             1, -1, -1,
-            -1, -1, -1,
-
-            1, -1,  1,
-            -1, -1,  1,
-            1, -1, -1,
-            -1, -1, -1,
-
-            1, -1,  1,
-            -1, -1,  1,
-            1, -1, -1,
-            -1, -1, -1
-
-    };
-
-    static private float[] vertices = {
-            -1,1,-1, // 0
-            -1,-1,-1, // 1
-            1,-1,-1, // 2
-            1,1,-1, // 3
-
-            -1,1,1, // 4
-            -1,-1,1, // 5
-            1,-1,1,
-            1,1,1,
-
-            1,1,-1,
-            1,-1,-1,
-            1,-1,1,
-            1,1,1,
-
-            -1,1,-1, // 0
-            -1,-1,-1,
-            -1,-1,1,
-            -1,1,1,
-
-            -1,1,1,
-            -1,1,-1,
-            1,1,-1,
-            1,1,1,
-
-            -1,-1,1, // 20
-            -1,-1,-1,
-            1,-1,-1,
-            1,-1,1 // 23
-    };
-
-    static private float[] textureCoords = {
-            0.5f, 0, // Back side
-            0.5f, 0.5f,
-            0, 0.5f,
-            0, 0,
-            0.5f, 0, // Front side
-            0.5f, 0.5f,
-            0, 0.5f,
-            0, 0,
-            0.5f, 0, // Right side
-            0.5f, 0.5f,
-            0, 0.5f,
-            0, 0,
-            0.5f, 0, // Left side
-            0.5f, 0.5f,
-            0, 0.5f,
-            0, 0,
-            1, 0, // Top side
-            1, 0.5f,
-            0.5f, 0.5f,
-            0.5f, 0,
-            0.5f, 0.5f, // Bottom side
-            0.5f, 1,
-            0, 1,
-            0, 0.5f,
-    };
-
-
-
-    static private int[] indices = {
-            0,1,3,
-            3,1,2,
-            4,5,7,
-            7,5,6,
-            8,9,11,
-            11,9,10,
-            12,13,15,
-            15,13,14,
-            16,17,19,
-            19,17,18,
-            20,21,23,
-            23,21,22
-    };
-     */
-
+    */
 }

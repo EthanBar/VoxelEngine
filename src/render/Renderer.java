@@ -7,12 +7,13 @@ import org.lwjgl.opengl.*;
 import org.lwjgl.util.vector.Matrix4f;
 import shaders.StaticShader;
 import toolbox.Maths;
+import toolbox.Settings;
 
 public class Renderer {
 
     private static final float FOV = 100;
     private static final float NEAR = 0.1f;
-    private static final float FAR = 1000f;
+    private static final float FAR = Settings.RENDER_DISTANCE;
 
     private Matrix4f projectionMatrix;
 

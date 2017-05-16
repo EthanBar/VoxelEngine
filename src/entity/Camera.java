@@ -8,16 +8,19 @@ public class Camera {
 
     private static final boolean GODMODE = true;
     private Vector3f velocity = new Vector3f(0, 0, 0);
-    private Vector3f position = new Vector3f(8, 20, 8);
+    private Vector3f position = new Vector3f(0, 0, 0);
     private float pitch = 0;
     private float roll = 0;
     private float yaw = 0;
-    private static final float MOVESPEED = 0.04f;
-    private static final float MAXSPEED = 0.12f;
-    private static final float DECAYSPEED = 0.01f;
+    private static final float MOVESPEED = 0.08f;
+    private static float MAXSPEED = 0.12f;
+    private static final float DECAYSPEED = 0.04f;
     private static final float GRAVITY = 0.002f;
 
     public void move() {
+        if (Keyboard.isKeyDown(Keyboard.KEY_TAB)) {
+            MAXSPEED = 1.10f;
+        }
         yaw += Mouse.getDX() * 0.1;
         pitch += Mouse.getDY() * -0.1;
         if (pitch > 90) {
@@ -98,6 +101,7 @@ public class Camera {
             velocity.z = -MAXSPEED;
         }
         position.translate(velocity.x, velocity.y, velocity.z);
+        MAXSPEED = 0.12f;
     }
 
     public Vector3f getPosition() {
