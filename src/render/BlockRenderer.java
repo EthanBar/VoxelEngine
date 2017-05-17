@@ -1,14 +1,14 @@
-package objects;
+package render;
 
 import models.RawModel;
 import models.TexturedModel;
+import objects.Block;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector3f;
-import render.Loader;
 import shaders.StaticShader;
 import textures.ModelTexture;
 import toolbox.Maths;
@@ -56,21 +56,54 @@ public class BlockRenderer {
         types.put(ID, type);
     }
 
-    public static void render(Block[][][] block, StaticShader shader, int[] offset) {
-        int chunkSize = block.length;
-        int limit = chunkSize - 1;
-        int render = Settings.RENDER_DISTANCE;
-        GL30.glBindVertexArray(rawModelSingle.getVaoID());
+    private static int perviousTextureType = FOUR_SQUARE;
+    private static int render = Settings.RENDER_DISTANCE;
+    private static int previousID = 0;
+    private static int chunkSize = 16;
+    private static int limit = 15;
+
+    public static void start() {
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL30.glBindVertexArray(rawModel.getVaoID());
         GL20.glEnableVertexAttribArray(0);
         GL20.glEnableVertexAttribArray(1);
-        GL11.glCullFace(GL11.GL_BACK);
-        int perviousTextureType = ONE_SQUARE;
-        int previousID = 0;
+    }
+
+    public static void prepare() {
+        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        GL11.glClearColor(0.737f, 0.823f, 0.956f, 1);
+//        GL30.glBindVertexArray(rawModel.getVaoID());
+//        GL20.glEnableVertexAttribArray(0);
+//        GL20.glEnableVertexAttribArray(1);
+    }
+
+    public static void render(Block[][][] block, StaticShader shader, int[] offset) {
+//        GL20.glEnableVertexAttribArray(0);
+//        GL20.glEnableVertexAttribArray(1);
         for (int x = 0; x < chunkSize; x++) {
-            for (int y = 0; y < chunkSize; y++) {
+            for (int y = 0; y < block[x].length; y++) {
                 for (int z = 0; z < chunkSize; z++) {
                     int ID = block[x][y][z].getID(); // Get texture ID
                     if (ID == 0) continue; // Break if air
+
+                    // Break if out of render distance
+                    float distance = (float)Math.sqrt(Math.pow(px - (x + offset[0]), 2) + Math.pow(py - (y + offset[1]), 2) + Math.pow(pz - (z + offset[2]), 2));
+                    if (distance > render) continue;
+
+                    // Break if underground (temp speed up)
+                    if (y != block[x].length - 1) {
+                        if (block[x][y + 1][z].getID() != 0) continue;
+                    }
+
+                    // Break if surrounded
+                    if (x != 0 && x != limit && y != 0 && y != limit && z != 0 && z != limit) {
+                        if (block[x - 1][y][z].getID() != 0 && block[x + 1][y][z].getID() != 0 &&
+                                block[x][y - 1][z].getID() != 0 && block[x][y + 1][z].getID() != 0 &&
+                                block[x][y][z - 1].getID() != 0 && block[x][y][z + 1].getID() != 0) {
+                            continue;
+                        }
+                    }
+
                     // Change texture if needed
                     if (previousID != ID) {
                         // Change model type if needed
@@ -91,17 +124,6 @@ public class BlockRenderer {
                         previousID = ID;
                     }
 
-                    float distance = (float)Math.sqrt(Math.pow(px - (x + offset[0]), 2) + Math.pow(py - (y + offset[1]), 2) + Math.pow(pz - (z + offset[2]), 2));
-                    if (distance > render) continue;
-
-                    if (x != 0 && x != limit && y != 0 && y != limit && z != 0 && z != limit) {
-                        if (block[x - 1][y][z].getID() != 0 && block[x + 1][y][z].getID() != 0 &&
-                                block[x][y - 1][z].getID() != 0 && block[x][y + 1][z].getID() != 0 &&
-                                block[x][y][z - 1].getID() != 0 && block[x][y][z + 1].getID() != 0) {
-                            continue;
-                        }
-                    }
-
                     Matrix4f transformationMatrix = Maths.createTransformationMatrix(new Vector3f(x + offset[0], y + offset[1], z + offset[2]),
                                                                                      0, 0, 0, 0.5f);
                     shader.loadTransformationMatrix(transformationMatrix);
@@ -110,6 +132,9 @@ public class BlockRenderer {
                 }
             }
         }
+    }
+
+    public static void clean() {
         GL20.glDisableVertexAttribArray(0);
         GL20.glDisableVertexAttribArray(1);
         GL30.glBindVertexArray(0);

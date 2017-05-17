@@ -1,9 +1,10 @@
 import audio.AudioMaster;
 import audio.Source;
 import entity.Camera;
-import objects.BlockRenderer;
+import render.BlockRenderer;
 import objects.Block_Side;
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Vector3f;
 import render.Loader;
@@ -60,6 +61,10 @@ public class VoxelEngine {
         int frameNumber = 0;
         int renderChunks = (int)Math.ceil(Settings.RENDER_DISTANCE / 16) * 2;
         GL11.glEnable(GL11.GL_CULL_FACE);
+        GL11.glCullFace(GL11.GL_BACK);
+
+
+        BlockRenderer.start();
         while(!Display.isCloseRequested()) {
             // Set up
             if(Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) break;
@@ -72,25 +77,40 @@ public class VoxelEngine {
 
             // Tick math
             camera.move();
-            int cx = Math.round(pos.x / 16);
-            int cy = Math.round(pos.z / 16);
+            int cx = (int)Math.floor(pos.x / 16);
+            int cy = (int)Math.floor(pos.z / 16);
 
 
             // Render
-            renderer.prepare();
+            BlockRenderer.prepare();
             shader.start();
             shader.loadRenderDistance(Settings.RENDER_DISTANCE);
             shader.loadViewMatrix(camera);
-            for (int x = cx - renderChunks / 2; x < cx + renderChunks / 2; x++) {
-                for (int y = cy - renderChunks / 2; y < cy + renderChunks / 2; y++) {
-                    BlockRenderer.render(world.getBlocks(x, y), shader, new int[]{x * 16, 0, y * 16});
+            for (int x = cx - renderChunks / 2 - 1; x < cx + renderChunks / 2 + 1; x++) {
+                for (int y = cy - renderChunks / 2 - 1; y < cy + renderChunks / 2 + 1; y++) {
+                    if (world.checkEmpty(x, y)) BlockRenderer.render(world.getBlocks(x, y), shader, new int[]{x * 16, 0, y * 16});
+                }
+            }
+
+            if ( Mouse.isButtonDown(0)) {
+                if (world.checkEmpty(cx, cy)) {
+                    int posx = ((int)(pos.x)) % 16;
+                    int posy = (int)pos.y;
+                    int posz = ((int)(pos.z)) % 16;
+                    if (posx < 0) posx += 15;
+                    if (posy < 0) posy += 15;
+                    if (posz < 0) posz += 15;
+//                    System.out.println((int)pos.x);
+                    world.getChunk(cx, cy).updateBlock(posx, posy, posz, 2);
                 }
             }
             shader.stop();
             DisplayMain.update();
-            if (frameNumber % 60 == 0) System.out.println("Milliseconds per frame: " + Double.toString((double)System.currentTimeMillis() - time));
+//            if (frameNumber % 60 == 0) System.out.println("Milliseconds per frame: " +
+//                                                                  Double.toString((double)System.currentTimeMillis() - time));
         }
 
+        BlockRenderer.clean();
         shader.clean();
         loader.clean();
         if (AUDIO) AudioMaster.clean();

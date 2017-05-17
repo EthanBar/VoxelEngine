@@ -20,8 +20,9 @@ public class Block {
 
     private int light;
 
-    public Block(int x, int y, int z, int light) {
+    public Block(int x, int y, int z, int light, int id) {
         position = new Vector3f(x, y, z);
+        this.ID = id;
         if (light > 15) {
             this.light = 16;
         } else {

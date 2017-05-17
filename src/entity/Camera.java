@@ -90,9 +90,9 @@ public class Camera {
         } else if (velocity.x < -MAXSPEED) {
             velocity.x = -MAXSPEED;
         }
-        if (velocity.y > MAXSPEED && GODMODE) {
+        if (velocity.y > MAXSPEED) {
             velocity.y = MAXSPEED;
-        } else if (velocity.y < -MAXSPEED  && GODMODE) {
+        } else if (velocity.y < -MAXSPEED) {
             velocity.y = -MAXSPEED;
         }
         if (velocity.z > MAXSPEED) {

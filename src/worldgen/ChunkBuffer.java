@@ -8,13 +8,13 @@ class ChunkBuffer {
 
     }
 
-    private void genChunk() {
-        chunk = new Chunk();
+    private void genChunk(int x, int y) {
+        chunk = new Chunk(x, y);
     }
 
-    boolean chunkRequest() {
+    boolean chunkRequest(int x, int y) {
         if (null == chunk) {
-            genChunk();
+            genChunk(x, y);
             return false;
         }
         return true;
